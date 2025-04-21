@@ -189,10 +189,19 @@ namespace Parser
         ) {
             try
             {
-                // Генерация корректного имени файла
-                string fileName = $"{SanitizeFileName(lessonTitle)}_{SanitizeFileName(categoryTitle)}_{Guid.NewGuid()}.pdf";
+                string currentDate = DateTime.Now.ToString("yyyy-MM-dd");
+                string projectRoot = GetProjectRootDirectory();
+                string dataDirectory = Path.Combine(projectRoot, "Data", currentDate);
 
-                using (var writer = new PdfWriter(fileName))
+                if (!Directory.Exists(dataDirectory))
+                {
+                    Directory.CreateDirectory(dataDirectory);
+                }
+
+                string fileName = $"{SanitizeFileName(lessonTitle)}_{SanitizeFileName(categoryTitle)}_{Guid.NewGuid()}.pdf";
+                string fullName = Path.Combine(dataDirectory, fileName);
+             
+                using (var writer = new PdfWriter(fullName))
                 {
                     using var pdf = new PdfDocument(writer);
                     var document = new Document(pdf);
@@ -294,6 +303,21 @@ namespace Parser
                 fileName = fileName.Replace(c.ToString(), "");
             }
             return fileName;
+        }
+
+        private string GetProjectRootDirectory()
+        {
+            var currentDirectory = Directory.GetCurrentDirectory();
+            while (!Directory.GetFiles(currentDirectory, "*.csproj").Any())
+            {
+                var parentDirectory = Directory.GetParent(currentDirectory);
+                if (parentDirectory == null)
+                {
+                    throw new InvalidOperationException("Не удалось найти корневую директорию проекта.");
+                }
+                currentDirectory = parentDirectory.FullName;
+            }
+            return currentDirectory;
         }
     }
 }
